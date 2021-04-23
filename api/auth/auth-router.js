@@ -1,43 +1,70 @@
 const router = require("express").Router();
 const bcrypt = require("bcrypt");
 const Users = require("./auth-model.js");
-const checkValid = require("../middleware/checkValid.js");
-const createToken = require("../middleware/createToken.js");
+const jwt = require("jsonwebtoken");
+const jwtSecret = require("../secret").jwtSecret;
 
 router.post("/register", async (req, res) => {
-    if (checkValid(req.body)) {
-        try {
-            const { username, password } = req.body;
-            const hash = bcrypt.hashSync(password, 8);
-            const user = { username, password: hash };
-            const newUser = Users.create(user);
-            res.json(newUser);
-        } catch (err) {
-            res.status(500).json({ message: "username taken" });
-        }
-    } else {
+    if (!req.body.username || !req.body.password) {
         res.status(400).json({ message: "username and password required" });
+    } else {
+        try {
+            let newRegister = await Users.findByUsername(req.body.username);
+            if (newRegister != null) {
+                res.status(400).json({ message: "username taken" });
+            } else {
+                let bcryptPassword = bcrypt.hashSync(req.body.password, 8);
+                await Users.createUser({
+                    username: req.body.username,
+                    password: bcryptPassword,
+                });
+                const createdUser = await Users.findByUsername(
+                    req.body.username
+                );
+                res.status(201).json(createdUser);
+            }
+        } catch (err) {
+            res.status(500).json({ message: "error registering account" });
+        }
     }
 });
 
 router.post("/login", async (req, res) => {
-    if (checkValid(req.body)) {
+    if (!req.body.username || !req.body.password) {
+        res.status(400).json({ message: "username and password required" });
         try {
-            const { username, password } = req.body;
-            const hash = bcrypt.hashSync(password, 8);
-            const user = { username, password: hash };
-            Users.findBy({ username: username });
-            if (username && bcrypt.compareSync(password)) {
-                const token = createToken(user);
-                res.status(200).json({ message: `Welcome ${username}`, token });
+            const newLogin = await Users.findByUsername(req.body.username);
+            if (newLogin != null) {
+                let bcryptPassword = bcrypt.compareSync(
+                    req.body.password,
+                    newLogin.password
+                );
+                if (bcryptPassword) {
+                    jwt.sign(
+                        { username: newLogin.username },
+                        jwtSecret,
+                        (err, token) => {
+                            if (err) {
+                                res.status(500).json({
+                                    message: "invalid credentials",
+                                });
+                            } else {
+                                res.status(200).json({
+                                    message: `Welcome, ${newLogin.username}`,
+                                    token,
+                                });
+                            }
+                        }
+                    );
+                } else {
+                    res.status(400).json({ message: "invalid credentials" });
+                }
             } else {
-                res.status(401).json({ message: "Invalid credentials" });
+                res.status(400).json({ message: "invalid credentials" });
             }
         } catch (err) {
-            res.status(500).json({ message: "Invalid credentials" });
+            res.status(500).json({ message: "invalid credentials" });
         }
-    } else {
-        res.status(400).json({ message: "username and password required" });
     }
 });
 
