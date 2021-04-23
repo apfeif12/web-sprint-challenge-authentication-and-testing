@@ -1,10 +1,10 @@
 const router = require("express").Router();
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 const Users = require("./auth-model.js");
 const checkValid = require("../middleware/checkValid.js");
 const createToken = require("../middleware/createToken.js");
 
-router.post("/register", async (req, res, next) => {
+router.post("/register", async (req, res) => {
     if (checkValid(req.body)) {
         try {
             const { username, password } = req.body;
@@ -23,8 +23,11 @@ router.post("/register", async (req, res, next) => {
 router.post("/login", async (req, res) => {
     if (checkValid(req.body)) {
         try {
+            const { username, password } = req.body;
+            const hash = bcrypt.hashSync(password, 8);
+            const user = { username, password: hash };
             Users.findBy({ username: username });
-            if (user && bcrypt.compareSync(password, user.password)) {
+            if (username && bcrypt.compareSync(password)) {
                 const token = createToken(user);
                 res.status(200).json({ message: `Welcome ${username}`, token });
             } else {
