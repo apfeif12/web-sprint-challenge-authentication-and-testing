@@ -1,1 +1,1 @@
-module.exports.jwtSecret = process.env.jwtSecret || "alexalex";
+module.exports.JWT_SECRET = process.env.JWT_SECRET || 'alex is awesome' 

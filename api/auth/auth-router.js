@@ -2,7 +2,7 @@ const router = require("express").Router();
 const bcrypt = require("bcrypt");
 const Users = require("./auth-model.js");
 const jwt = require("jsonwebtoken");
-const jwtSecret = require("../secret").jwtSecret;
+const JWT_SECRET = require("../secret").JWT_SECRET;
 
 router.post("/register", async (req, res) => {
     if (!req.body.username || !req.body.password) {
@@ -43,7 +43,7 @@ router.post("/login", async (req, res) => {
                 if (bcryptPassword) {
                     jwt.sign(
                         { username: newLogin.username },
-                        jwtSecret,
+                        JWT_SECRET,
                         (err, token) => {
                             if (err) {
                                 res.status(500).json({
