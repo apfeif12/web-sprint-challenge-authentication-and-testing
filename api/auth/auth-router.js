@@ -32,6 +32,7 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
     if (!req.body.username || !req.body.password) {
         res.status(400).json({ message: "username and password required" });
+    } else {
         try {
             const newLogin = await Users.findByUsername(req.body.username);
             if (newLogin != null) {
